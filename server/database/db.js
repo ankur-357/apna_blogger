@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
-const Connection = async (username, password) => {
-    const URL = `mongodb+srv://ankurtiwari502:ankur2003@cluster0.alvbrh7.mongodb.net/SoloBlogginggg?retryWrites=true&w=majority`;
+const Connection = async () => {
+    const URL = process.env.MONGO_URI;
     try {
         await mongoose.connect(URL, { useNewUrlParser: true })
         console.log('Database connected successfully');
