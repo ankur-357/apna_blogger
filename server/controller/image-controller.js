@@ -1,37 +1,39 @@
-import grid from 'gridfs-stream';
-import mongoose from 'mongoose';
+import AWS from 'aws-sdk';
 
-const url = 'https://react-blogger-apna.onrender.com';
-
-
-let gfs, gridfsBucket;
-const conn = mongoose.connection;
-conn.once('open', () => {
-    gridfsBucket = new mongoose.mongo.GridFSBucket(conn.db, {
-        bucketName: 'fs'
-    });
-    gfs = grid(conn.db, mongoose.mongo);
-    gfs.collection('fs');
+AWS.config.update({
+    accessKeyId: 'AKIAXYKJTKCZXHNE66TC',
+    secretAccessKey: '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',
+    region: 'ap-south-1',
 });
 
+const s3 = new AWS.S3();
 
-export const uploadImage = (request, response) => {
-    if (!request.file)
+export const uploadImage = async (request, response) => {
+    if (!request.file) {
         return response.status(404).json("File not found");
+    }
 
-    const imageUrl = `${url}/file/${request.file.filename}`;
+    const params = {
+        Bucket: 'merni-blog',
+        Key: request.file.filename,
+        Body: request.file.buffer,
+    };
 
-    response.status(200).json(imageUrl);
-}
-
-export const getImage = async (request, response) => {
     try {
-        const file = await gfs.files.findOne({ filename: request.params.filename });
-        // const readStream = gfs.createReadStream(file.filename);
-        // readStream.pipe(response);
-        const readStream = gridfsBucket.openDownloadStream(file._id);
-        readStream.pipe(response);
+        await s3.upload(params).promise();
+        const imageUrl = `https://YOUR_S3_BUCKET_NAME.s3.YOUR_AWS_REGION.amazonaws.com/${request.file.filename}`;
+        response.status(200).json(imageUrl);
     } catch (error) {
         response.status(500).json({ msg: error.message });
     }
-}
+};
+
+export const getImage = (request, response) => {
+    const params = {
+        Bucket: 'merni-blog',
+        Key: request.params.filename,
+    };
+
+    const readStream = s3.getObject(params).createReadStream();
+    readStream.pipe(response);
+};
